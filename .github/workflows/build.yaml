@@ -3,7 +3,10 @@ on:
   push:
     branches:
       - dev
-      - main
+      - master
+  pull_request:
+    branches:
+      - master
 env:
   NODE_DEFAULT_VERSION: 24
   GAR_LOCATION: us-east1
