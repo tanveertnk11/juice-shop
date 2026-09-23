@@ -1,0 +1,43 @@
+name: Test and Build the docker image
+on:
+  push:
+    branches:
+      - dev
+      - master
+  pull_request:
+    branches:
+      - master
+env:
+  NODE_DEFAULT_VERSION: 24.21.0
+  GAR_LOCATION: us-east1
+  REPOSITORY: docker
+  app: juice-shop
+jobs:
+  test:
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+      - name: Login to Google
+        uses: "google-github-actions/auth@v3"
+        with:
+          project_id: ${{ vars.PROJECT_ID }}
+          workload_identity_provider: "projects/${{ vars.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-actions/providers/github-provider"
+          service_account: ${{ vars.SERVICE_ACCOUNT_NAME }}
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v3"
+        with:
+          project_id: "${{ vars.PROJECT_ID }}"
+
+      - name: "Docker auth"
+        run: |-
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+
+      - name: "Build and push container"
+        run: |-
+          docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.APP }}:${{ github.sha }}" .
+          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.APP }}:${{ github.sha }}"
