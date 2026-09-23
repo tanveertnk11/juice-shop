@@ -11,7 +11,7 @@ env:
   NODE_DEFAULT_VERSION: 24.21.0
   GAR_LOCATION: us-east1
   REPOSITORY: docker
-  app: juice-shop
+  APP: juice-shop
 jobs:
   test:
     environment: dev
