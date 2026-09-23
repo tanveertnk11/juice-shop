@@ -1,0 +1,61 @@
+name: Test and Build the docker image
+on:
+  push:
+    branches:
+      - dev
+      - main
+env:
+  NODE_DEFAULT_VERSION: 24
+  GAR_LOCATION: us-east1
+  REPOSITORY: docker
+  app: juice-shop
+jobs:
+  test:
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+      - name: Setup nodejs
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af #v4.1.0
+        with:
+          node-version: ${{ env.NODE_DEFAULT_VERSION }}
+      - name: Cache node modules
+        id: cache-dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+      - name: List the state of node modules
+        if: ${{ steps.cache-npm.outputs.cache-dependencies != 'true' }}
+        continue-on-error: true
+        run: npm ci
+
+      - name: Run Tests
+        run: npm run test
+      - name: Login to Google
+        uses: "google-github-actions/auth@v3"
+        with:
+          project_id: ${{ vars.PROJECT_ID }}
+          workload_identity_provider: "projects/${{ vars.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-actions/providers/github-provider"
+          service_account: ${{ vars.SERVICE_ACCOUNT_NAME }}
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+        with:
+          project_id: "${{ vars.PROJECT_ID }}"
+
+      - name: "Docker auth"
+        run: |-
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+
+      - name: "Build and push container"
+        run: |-
+          docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.APP }}:${{ github.sha }}" .
+          docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.APP }}:${{ github.sha }}"
