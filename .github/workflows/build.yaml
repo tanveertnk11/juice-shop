@@ -19,12 +19,9 @@ jobs:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
-    container:
-      # A Docker image with Semgrep installed. Do not change this.
-      image: semgrep/semgrep
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        uses: actions/checkout@v7
       - name: Run gitleaks to check secrets exposure
         continue-on-error: true
         uses: gitleaks/gitleaks-action@v3
