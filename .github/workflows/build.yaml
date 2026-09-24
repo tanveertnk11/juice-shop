@@ -19,14 +19,29 @@ jobs:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
+    container:
+      # A Docker image with Semgrep installed. Do not change this.
+      image: returntocorp/semgrep
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
       - name: Run gitleaks to check secrets exposure
-        uses: gitleaks/gitleaks-action@v3
         continue-on-error: true
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - parallel:
+          - name: nodejsscan scan
+            id: njsscan
+            uses: ajinabraham/njsscan-action@231750a435d85095d33be7d192d52ec650625146 # v9
+            with:
+              args: "."
+          - name: Perform Semgrep Analysis
+            # @NOTE: This is the actual semgrep command to scan your code.
+            # Modify the --config option to 'r/all' to scan using all rules,
+            # or use multiple flags to specify particular rules, such as
+            # --config r/all --config custom/rules
+            run: semgrep scan --sarif --config auto ./vulnerable-source-code > semgrep-results.sarif
       - name: Setup nodejs
         uses: actions/setup-node@v7
         with:
@@ -47,7 +62,7 @@ jobs:
 
       - name: Run Tests
         run: npm run test
-      - name: Login to Google
+      - name: Authenticate to Google
         uses: "google-github-actions/auth@v3"
         with:
           project_id: ${{ vars.PROJECT_ID }}
