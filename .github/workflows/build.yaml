@@ -27,16 +27,18 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+          GITLEAKS_CONFIG: ./.gitleaks.toml
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - parallel:
-          - name: nodejsscan scan
+          - name: njsscan
             id: njsscan
             continue-on-error: true
             uses: ajinabraham/njsscan-action@231750a435d85095d33be7d192d52ec650625146 # v9
             with:
-              args: "."
+              args: ". --sarif --output njsscan.sarif || true"
           - name: Perform Semgrep Analysis
             uses: docker://semgrep/semgrep:latest
             # @NOTE: This is the actual semgrep command to scan your code.
@@ -44,7 +46,14 @@ jobs:
             # or use multiple flags to specify particular rules, such as
             # --config r/all --config custom/rules
             with:
-              args: semgrep scan --config p/javascript . --metrics=off
+              args: semgrep scan --config p/javascript . --metrics=off --json --output=semgrep.json
+      - name: Upload Scan Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-scan-reports
+          path: |
+            njsscan.sarif
+            semgrep.json
       - name: Setup nodejs
         uses: actions/setup-node@v7
         with:
