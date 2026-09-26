@@ -157,20 +157,20 @@ jobs:
         env:
           IMAGE_NAME: ${{ needs.build.outputs.IMAGE_NAME }}
         run: |-
-          gcloud compute ssh "$APP_NAME" \
+          gcloud compute ssh ${{ env.APP }} \
             --zone=us-east1-b \
             --quiet \
             --ssh-flag="-T" << EOF
               set -euo pipefail
 
               # Fix: Run docker login as sudo so that the subsequent 'sudo docker pull' can use it
-              gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --password-stdin "https://$GAR_REGISTRY"
+              gcloud auth print-access-token | sudo docker login -u oauth2accesstoken --password-stdin https://${{ env.GAR_LOCATION }}-docker.pkg.dev
 
               # Deploy operations
-              sudo docker pull "$IMAGE_NAME"
-              sudo docker rm -f "$APP_NAME" || true
+              sudo docker pull ${{ env.IMAGE_NAME }}
+              sudo docker rm -f ${{ env.APP }} || true
               sudo docker run -d --restart unless-stopped \
-                --name "$APP_NAME" \
+                --name ${{ env.APP }} \
                 -p 80:3000 \
-                "$IMAGE_NAME"
+                ${{ env.IMAGE_NAME }}
           EOF
