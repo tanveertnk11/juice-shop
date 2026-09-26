@@ -12,6 +12,7 @@ env:
   GAR_LOCATION: us-east1
   REPOSITORY: docker
   APP: juice-shop
+  SERVER_IP: 35.211.147.60
 jobs:
   test:
     environment: dev
@@ -113,10 +114,32 @@ jobs:
       - name: "Docker auth"
         run: |-
           gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
+          echo "IMAGE_NAME=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.APP }}" >> GITHUB_ENV
 
       - name: "Build and push container"
         run: |-
-          echo "IMAGE_NAME=${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.APP }}" >> GITHUB_ENV
           docker build -t "${{ env.IMAGE_NAME }}:${{ github.sha }}" -t "${{ env.IMAGE_NAME }}:latest" .
           docker push "${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker push "${{ env.IMAGE_NAME }}:latest"
+
+  deploy:
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Authenticate to Google
+        uses: "google-github-actions/auth@v3"
+        with:
+          project_id: ${{ vars.PROJECT_ID }}
+          workload_identity_provider: "projects/${{ vars.PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-actions/providers/github-provider"
+          service_account: ${{ vars.SERVICE_ACCOUNT_NAME }}
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v3"
+        with:
+          project_id: "${{ vars.PROJECT_ID }}"
+      - name: "SSH instance"
+        run:
