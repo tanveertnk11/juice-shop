@@ -134,7 +134,7 @@ jobs:
           echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
 
   deploy:
-    # needs: build
+    needs: build
     environment: dev
     permissions:
       contents: read
