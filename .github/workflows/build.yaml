@@ -55,6 +55,7 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: SCA Analysis with Retirejs
+        continue-on-error: true
         run: |-
           npm instal -g retire
           retire --path . --outputformat json --outputpath ./retirejs.json
@@ -66,6 +67,7 @@ jobs:
             njsscan.sarif
             semgrep.json
             gitleaks.sarif
+            retirejs.json
       - name: Upload scan report to defect dojo
         if: always()
         run: |-
@@ -73,6 +75,7 @@ jobs:
           python3 upload-scan-defectdojo.py gitleaks.sarif
           python3 upload-scan-defectdojo.py njsscan.sarif
           python3 upload-scan-defectdojo.py semgrep.json
+          python3 upload-scan-defectdojo.py retirejs.json
       # - name: Cache node modules
       #   id: cache-dependencies
       #   uses: actions/cache@v6
