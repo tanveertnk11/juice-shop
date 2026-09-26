@@ -22,17 +22,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-      - name: Run gitleaks to check secrets exposure
-        # gitleaks-action only ever scans the pushed commit range on push/PR
-        # events, so the CLI is called directly to scan the whole repository.
-        continue-on-error: true
-        uses: docker://zricethezav/gitleaks:latest
-        with:
-          args: detect --source . --report-format=sarif --report-path=./gitleaks.sarif
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - parallel:
+          - name: Run gitleaks to check secrets exposure
+            # gitleaks-action only ever scans the pushed commit range on push/PR
+            # events, so the CLI is called directly to scan the whole repository.
+            continue-on-error: true
+            uses: docker://zricethezav/gitleaks:latest
+            with:
+              args: detect --source . --report-format=sarif --report-path=./gitleaks.sarif
           - name: njsscan
             id: njsscan
             continue-on-error: true
@@ -47,6 +47,17 @@ jobs:
             # --config r/all --config custom/rules
             with:
               args: semgrep scan --config p/javascript . --metrics=off --json --output=semgrep.json
+      - name: Setup nodejs
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_DEFAULT_VERSION }}
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install
+      - name: SCA Analysis with Retirejs
+        run: |-
+          npm instal -g retire
+          retire --path . --outputformat json --outputpath ./retirejs.json
       - name: Upload Scan Artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -62,11 +73,6 @@ jobs:
           python3 upload-scan-defectdojo.py gitleaks.sarif
           python3 upload-scan-defectdojo.py njsscan.sarif
           python3 upload-scan-defectdojo.py semgrep.json
-      - name: Setup nodejs
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_DEFAULT_VERSION }}
-          cache: "npm"
       # - name: Cache node modules
       #   id: cache-dependencies
       #   uses: actions/cache@v6
@@ -77,9 +83,6 @@ jobs:
       #       ${{ runner.os }}-build-${{ env.cache-name }}-
       #       ${{ runner.os }}-build-
       #       ${{ runner.os }}-
-      - name: Install dependencies
-        run: npm install
-
       - name: Run Tests
         run: npm run test
       - name: Authenticate to Google
