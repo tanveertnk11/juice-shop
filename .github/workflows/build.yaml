@@ -58,6 +58,7 @@ jobs:
       - name: Upload scan report to defect dojo
         if: always()
         run: |-
+          pip install requests
           python3 upload-scan-defectdojo.py gitleaks.sarif
           python3 upload-scan-defectdojo.py njsscan.sarif
           python3 upload-scan-defectdojo.py semgrep.json
