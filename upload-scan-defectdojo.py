@@ -17,6 +17,8 @@ elif file_name == "njsscan.sarif":
   scan_type = "njsscan Scan"
 elif file_name == "semgrep.json":
   scan_type = "Semgrep JSON Report"
+elif file_name == "retirejs.json":
+  scan_type = "Retire.js Scan"
 
 # response = requests.post(f"{api_url}/api-token-auth/", json=auth_payload)
 
