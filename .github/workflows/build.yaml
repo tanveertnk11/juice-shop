@@ -14,11 +14,10 @@ env:
   APP: juice-shop
   SERVER_IP: 35.211.147.60
 jobs:
-  test:
+  security-scan:
     environment: dev
     permissions:
       contents: read
-      id-token: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -77,22 +76,27 @@ jobs:
           python3 upload-scan-defectdojo.py njsscan.sarif
           python3 upload-scan-defectdojo.py semgrep.json
           python3 upload-scan-defectdojo.py retirejs.json
-      # - name: Cache node modules
-      #   id: cache-dependencies
-      #   uses: actions/cache@v6
-      #   with:
-      #     path: node_modules
-      #     key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-build-${{ env.cache-name }}-
-      #       ${{ runner.os }}-build-
-      #       ${{ runner.os }}-
+
+  test:
+    environment: dev
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Setup nodejs
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_DEFAULT_VERSION }}
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install
       - name: Run Tests
         run: npm run test
-
   build:
     environment: dev
-    needs: test
+    needs: security-scan
     permissions:
       contents: read
       id-token: write
@@ -128,6 +132,7 @@ jobs:
 
   deploy:
     needs: build
+    environment: dev
     permissions:
       contents: read
       id-token: write
