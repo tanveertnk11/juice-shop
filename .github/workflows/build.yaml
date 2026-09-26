@@ -158,6 +158,12 @@ jobs:
         run: |-
           gcloud compute ssh ${{ env.APP }} \
             --zone=us-east1-b \
-            --quiet
-          docker stop ${{ env.APP }} || true && docker rm ${{ env.APP }} || true
-          docker run -d --name ${{ env.APP }} --port 3000:3000 ${{ env.IMAGE_NAME }}:latest
+            --quiet \
+            --command="set -euo pipefall
+              gcloud auth print-access-token \
+                | docker login -u oauth2accesstoken --password-stdin \
+                  https://${{ env.GAR_LOCATION }}-docker.pkg.dev
+              sudo docker pull ${{ env.IMAGE_NAME }}
+              sudo docker rm -f ${{ env.APP }} || true
+              sudo docker run -d --restart unless-stopped \
+                -name ${{ env.APP }} -p 80:3000 ${{ env.IMAGE_NAME }}
