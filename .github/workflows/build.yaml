@@ -135,7 +135,7 @@ jobs:
             --cache-to=type=gha,mode=max \
             -t "${{ env.IMAGE_NAME }}:${{ github.sha }}" -t "${{ env.IMAGE_NAME }}:latest" \
             -t "${{ env.IMAGE_NAME }}:${{ github.sha }}" -t "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
-            load .
+            --load .
           docker push "${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker push "${{ env.IMAGE_NAME }}:latest"
           echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
